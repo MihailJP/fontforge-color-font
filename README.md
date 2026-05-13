@@ -1,13 +1,13 @@
-Fontforge plugin template
-=========================
+Fontforge color font plugin
+===========================
 
-Description here
+FontForge_plugin for color fonts
 
 Install
 -------
 
 ```shell
-pip3 install fontforge_hello
+pip3 install fontforge_color_font
 ```
 
 ### Make sure Fontforge Python module is usable
