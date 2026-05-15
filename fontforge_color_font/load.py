@@ -204,8 +204,17 @@ def _addGenerateHook(font: fontforge.font):
 
 def _loadHook_ttf(font: fontforge.font):
     if hasSvgTable(font):
-        fontforge.logWarning('SVG detected')
-        loadSvgColorFont(font)
+        if fontforge.ask(
+            'SVG color font',
+            "This font has 'SVG ' table.\n"
+                "This means this is a color font.\n"
+                "Import the SVG documents included in the font?\n"
+                "This may take some minutes.",
+            ('_Yes', '_No'),
+            0,
+            1,
+        ) == 0:
+            loadSvgColorFont(font)
 
 
 def loadHook(font: fontforge.font):
