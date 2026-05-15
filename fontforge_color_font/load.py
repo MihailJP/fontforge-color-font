@@ -79,15 +79,22 @@ def _getPartSVG(svg: str, glyphIDs: int | range):
         body = body.replace(SVG_Magic_Comment, '')
         body = body[:(body.find('</defs>') + 7)] + '</svg>'
     else:
-        body = '<defs>' + body
+        body = body.replace('</defs>', '')
         body = body.replace('</svg>', '</defs></svg>')
     return header + SVG_Magic_Comment + body.replace('</svg>', use + '</svg>')
+
+
+def _hasMultipleGlyph(svg: str) -> bool:
+    if 'id="glyph' in svg:
+        return 'id="glyph' in svg[(svg.find('id="glyph') + 9):]
+    else:
+        return False
 
 
 def _separateSVG(ttf: ttFont.TTFont, svg: str, glyphid: int, tmpdir: str):
     glyphname = ttf.getGlyphOrder()[glyphid]
     svgfile = Path(tmpdir, glyphname + '.svg')
-    if svg.count('id="glyph') > 1:
+    if _hasMultipleGlyph(svg):
         newsvg = _getPartSVG(svg, glyphid)
         run(['scour', '-o', svgfile, '--strip-xml-prolog'], check=True, input=newsvg, text=True)
     elif 'id="glyph' in svg:
@@ -112,7 +119,11 @@ def _separateSVG_subsep(
             end = min(start + separateBy - 1, endGlyphID)
             newsvg = _getPartSVG(svg, range(start, end + 1))
             result = run([
-                'scour', '--strip-xml-prolog',
+                'scour',
+                '--strip-xml-prolog',
+                '--disable-simplify-colors',
+                '--disable-style-to-xml',
+                '--disable-group-collapsing',
             ], check=True, input=newsvg, capture_output=True, text=True)
             stderr.write(result.stderr)
             f(ttf, result.stdout, start, end, tmpdir)
