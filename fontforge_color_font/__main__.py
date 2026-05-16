@@ -1,4 +1,4 @@
-from . import load
+from . import load, svg
 import fontforge
 from typing import Literal, Callable
 
@@ -20,21 +20,28 @@ def _addHook(
         fontforge.hooks[name] = hook
 
 
-# def hello(u, glyph):
-#     fontforge.postNotice("FontForge Plugin Template", "Hello, world!")
-
-
-# def helloEnable(u, glyph):
-#     return True
-
-
 def fontforge_plugin_init(**kw):
     if fontforge.hasUserInterface:
         _addHook('loadFontHook', load.loadHook)
         _addHook('newFontHook', load.newFontHook)
-    # fontforge.registerMenuItem(
-    #     callback=hello,
-    #     enable=helloEnable,
-    #     context=("Font", "Glyph"),
-    #     name="Hello"
-    # )
+    fontforge.registerMenuItem(
+        callback=svg.importSvgMenu,
+        enable=None,
+        context=("Font", "Glyph"),
+        name="Import SVG as color font glyph...",
+        submenu='Color font',
+    )
+    fontforge.registerMenuItem(
+        callback=svg.exportSvgMenu,
+        enable=svg.svgIsRegisteredMenu,
+        context=("Font", "Glyph"),
+        name="Export SVG color font glyph...",
+        submenu='Color font',
+    )
+    fontforge.registerMenuItem(
+        callback=svg.deleteSvgMenu,
+        enable=svg.svgIsRegisteredMenu,
+        context=("Font", "Glyph"),
+        name="Delete SVG color font glyph",
+        submenu='Color font',
+    )

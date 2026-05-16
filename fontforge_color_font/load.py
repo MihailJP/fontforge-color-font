@@ -3,6 +3,7 @@ from typing import Literal, Callable
 from fontTools.ttLib import ttFont
 from tempfile import TemporaryDirectory
 from subprocess import run
+from os import PathLike
 from pathlib import Path
 from svglib.svglib import svg2rlg
 from reportlab.graphics import renderPM
@@ -36,15 +37,15 @@ def initGlyphPersistentDict(glyph: fontforge.glyph):
         glyph.persistent = {}
 
 
-def _glyphSvgToPng(glyph: fontforge.glyph, svgPath: str | Path | None, tmpdir: str):
+def _glyphSvgToPng(glyph: fontforge.glyph, svgPath: str | PathLike | None, tmpdir: str):
     pngPath = Path(tmpdir, glyph.glyphname + '.png')
     drawing = svg2rlg(svgPath)
     renderPM.drawToFile(drawing, pngPath, fmt='PNG')
     glyph.importOutlines(str(pngPath))
 
 
-def glyphSvgToPng(glyph: fontforge.glyph, svgPath: str | Path | None = None, tmpdir: str | None = None):
-    def writeSvgIfNeeded(svgPath: str | Path | None) -> Path:
+def glyphSvgToPng(glyph: fontforge.glyph, svgPath: str | PathLike | None = None, tmpdir: str | None = None):
+    def writeSvgIfNeeded(svgPath: str | PathLike | None) -> Path:
         if svgPath is None:
             svgfile = Path(tmpdir, glyph.glyphname + '.svg')
             with svgfile.open('w') as f:
@@ -60,7 +61,12 @@ def glyphSvgToPng(glyph: fontforge.glyph, svgPath: str | Path | None = None, tmp
             _glyphSvgToPng(glyph, writeSvgIfNeeded(svgPath), td)
 
 
-def loadSvg(glyph: fontforge.glyph, svgPath: str | Path, tmpdir: str | None = None):
+def loadSvg(glyph: fontforge.glyph, svgPath: str | PathLike):
+    """Imports color glyph SVG
+
+    :param glyph: a Fontforge glyph object
+    :param path: path of SVG file to import
+    """
     initGlyphPersistentDict(glyph)
     with Path(svgPath).open() as svg:
         glyph.persistent['SVG'] = svg.read()
@@ -91,15 +97,40 @@ def _hasMultipleGlyph(svg: str) -> bool:
         return False
 
 
+def _setSVGSize(ttf: ttFont.TTFont, svg: str, glyphid: int) -> str:
+    head = svg[:(svg.find('>') + 1)]
+    body = svg[(svg.find('>') + 1):]
+    glyphname = ttf.getGlyphOrder()[glyphid]
+    if 'viewBox="' not in head:
+        head = head[:-1] + ' viewBox="{} {} {} {}">'.format(
+            0,
+            -ttf['hhea'].ascender,
+            ttf['hmtx'][glyphname][0],
+            ttf['hhea'].ascender - ttf['hhea'].descender,
+        )
+        return head + body
+    else:
+        return svg
+
+
 def _separateSVG(ttf: ttFont.TTFont, svg: str, glyphid: int, tmpdir: str):
     glyphname = ttf.getGlyphOrder()[glyphid]
     svgfile = Path(tmpdir, glyphname + '.svg')
     if _hasMultipleGlyph(svg):
-        newsvg = _getPartSVG(svg, glyphid)
-        run(['scour', '-o', svgfile, '--strip-xml-prolog'], check=True, input=newsvg, text=True)
+        newsvg = _setSVGSize(ttf, _getPartSVG(svg, glyphid), glyphid)
     elif 'id="glyph' in svg:
-        with svgfile.open('w') as f:
-            f.write(svg)
+        newsvg = _setSVGSize(ttf, svg, glyphid)
+    run(
+        [
+            'scour', '-o', svgfile,
+            '--strip-xml-prolog',
+            '--remove-descriptive-elements',
+            '--enable-comment-stripping',
+        ],
+        check=True,
+        input=newsvg,
+        text=True
+    )
 
 
 def _separateSVG_subsep(
@@ -164,9 +195,9 @@ def loadSvgColorFont(font: fontforge.font):
         for glyph in font.glyphs():
             svgPath = Path(tmpdir, glyph.glyphname + '.svg')
             if svgPath.exists():
-                loadSvg(glyph, svgPath, tmpdir)
+                loadSvg(glyph, svgPath)
             elif (svgPath := Path(tmpdir, 'glyph' + str(glyph.originalgid).zfill(5) + '.svg')).exists():
-                loadSvg(glyph, svgPath, tmpdir)
+                loadSvg(glyph, svgPath)
 
 
 def _generatePreHook(font: fontforge.font, target: str):
