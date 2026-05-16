@@ -71,7 +71,8 @@ def loadSvg(glyph: fontforge.glyph, svgPath: str | PathLike):
     """
     initGlyphPersistentDict(glyph)
     with Path(svgPath).open() as svg:
-        glyph.persistent['SVG'] = svg.read()
+        svg = svg.read()
+    glyph.persistent['SVG'] = svg[svg.find('<svg'):]
 
 
 def _getPartSVG(svg: str, glyphIDs: int | range):
