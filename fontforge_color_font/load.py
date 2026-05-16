@@ -8,6 +8,8 @@ from pathlib import Path
 from svglib.svglib import svg2rlg
 from reportlab.graphics import renderPM
 from sys import stderr
+from blackrenderer.font import BlackRendererFont
+from blackrenderer.backends import getSurfaceClass
 
 
 SVG_Magic_Comment = '<!-- FONTFORGE_COLOR_FONT_SVG_READER -->'
@@ -183,6 +185,53 @@ def _separateSVG_thousands(ttf: ttFont.TTFont, svg: str, startGlyphID: int, endG
     _separateSVG_subsep(ttf, svg, startGlyphID, endGlyphID, tmpdir, 1000, 1000, _separateSVG_fiveHundreds)
 
 
+def _checkIfColrGlyphExists(ttf: ttFont.TTFont, glyphname: str) -> bool:
+    if 'COLR' not in ttf:
+        return False
+    elif ttf['COLR'].version == 0:
+        return glyphname in ttf['COLR'].__dict__
+    elif ttf['COLR'].version == 1:
+        return bool([g for g in ttf['COLR'].table.BaseGlyphList.BaseGlyphPaintRecord if g.BaseGlyph == glyphname])
+    else:
+        return False
+
+
+def _colr2svg(font: fontforge.font, tmpdir: str):
+    ttf = ttFont.TTFont(font.path)
+    print('Dumping into SVG files; this may take some time. Please be patient.')
+    f = BlackRendererFont(font.path)
+    for glyphname in [g for g in ttf.getGlyphOrder() if _checkIfColrGlyphExists(ttf, g)]:
+        canvasPos = (
+            0,
+            ttf['hhea'].descender,
+            ttf['hmtx'][glyphname][0],
+            ttf['hhea'].ascender,
+        )
+        surfaceClass = getSurfaceClass('svg')
+        surface = surfaceClass()
+        with surface.canvas(canvasPos) as canvas:
+            f.drawGlyph(glyphname, canvas)
+        surface.saveImage(str(Path(tmpdir, glyphname + '.svg')))
+
+
+def _importSvg(font: fontforge.font, tmpdir: str):
+    fontforge.logWarning('Reading SVG files. Please be patient.')
+    for glyph in font.glyphs():
+        svgPath = Path(tmpdir, glyph.glyphname + '.svg')
+        if svgPath.exists():
+            loadSvg(glyph, svgPath)
+        elif (svgPath := Path(tmpdir, 'glyph' + str(glyph.originalgid).zfill(5) + '.svg')).exists():
+            loadSvg(glyph, svgPath)
+
+
+def loadColrColorFont(font: fontforge.font):
+    if not hasColrTable(font):
+        return
+    with TemporaryDirectory() as tmpdir:
+        _colr2svg(font, tmpdir)
+        _importSvg(font, tmpdir)
+
+
 def loadSvgColorFont(font: fontforge.font):
     if not hasSvgTable(font):
         return
@@ -191,13 +240,7 @@ def loadSvgColorFont(font: fontforge.font):
         print('Dumping into SVG files; this may take some minutes. Please be patient.')
         for doc in ttf['SVG '].docList:
             _separateSVG_thousands(ttf, doc.data, doc.startGlyphID, doc.endGlyphID, tmpdir)
-        fontforge.logWarning('Reading SVG files. Please be patient.')
-        for glyph in font.glyphs():
-            svgPath = Path(tmpdir, glyph.glyphname + '.svg')
-            if svgPath.exists():
-                loadSvg(glyph, svgPath)
-            elif (svgPath := Path(tmpdir, 'glyph' + str(glyph.originalgid).zfill(5) + '.svg')).exists():
-                loadSvg(glyph, svgPath)
+        _importSvg(font, tmpdir)
 
 
 def _generatePreHook(font: fontforge.font, target: str):
@@ -234,7 +277,9 @@ def _addGenerateHook(font: fontforge.font):
 
 
 def _loadHook_ttf(font: fontforge.font):
-    if hasSvgTable(font):
+    if hasColrTable(font):
+        loadColrColorFont(font)
+    elif hasSvgTable(font):
         if fontforge.ask(
             'SVG color font',
             "This font has 'SVG ' table.\n"
