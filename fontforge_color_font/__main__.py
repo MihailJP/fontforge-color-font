@@ -1,4 +1,4 @@
-from . import load, svg
+from . import load, svg, export
 import fontforge
 from typing import Literal, Callable
 
@@ -43,5 +43,12 @@ def fontforge_plugin_init(**kw):
         enable=svg.svgIsRegisteredMenu,
         context=("Font", "Glyph"),
         name="Delete SVG color font glyph",
+        submenu='Color font',
+    )
+    fontforge.registerMenuItem(
+        callback=export.testSvgMenu,
+        enable=None,
+        context="Font",
+        name="Export test",
         submenu='Color font',
     )
