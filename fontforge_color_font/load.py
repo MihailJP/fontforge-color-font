@@ -8,6 +8,7 @@ from pathlib import Path
 from svglib.svglib import svg2rlg
 from reportlab.graphics import renderPM
 from sys import stderr
+import re
 from blackrenderer.font import BlackRendererFont
 from blackrenderer.backends import getSurfaceClass
 
@@ -39,8 +40,21 @@ def initGlyphPersistentDict(glyph: fontforge.glyph):
         glyph.persistent = {}
 
 
+def escapeGlyphName(glyphname: str) -> str:
+    patterns = [
+        (r'^uni([0-9A-F])([0-9A-F])([0-9A-F])([0-9A-F])', 'uni\ufdd0\\1\ufdd0\\2\ufdd0\\3\ufdd0\\4'),
+        (r'^u([0-9A-F]|10)([0-9A-F])([0-9A-F])([0-9A-F])([0-9A-F])', 'u\ufdd0\\1\ufdd0\\2\ufdd0\\3\ufdd0\\4\ufdd0\\5'),
+        (r'([A-Z_])', r'_\1'),
+        ('\ufdd0_?', ''),
+    ]
+    glyphfilename = glyphname
+    for pat, rpl in patterns:
+        glyphfilename = re.sub(pat, rpl, glyphfilename)
+    return glyphfilename
+
+
 def _glyphSvgToPng(glyph: fontforge.glyph, svgPath: str | PathLike | None, tmpdir: str):
-    pngPath = Path(tmpdir, glyph.glyphname + '.png')
+    pngPath = Path(tmpdir, escapeGlyphName(glyph.glyphname) + '.png')
     drawing = svg2rlg(svgPath)
     renderPM.drawToFile(drawing, pngPath, fmt='PNG')
     glyph.importOutlines(str(pngPath))
@@ -49,7 +63,7 @@ def _glyphSvgToPng(glyph: fontforge.glyph, svgPath: str | PathLike | None, tmpdi
 def glyphSvgToPng(glyph: fontforge.glyph, svgPath: str | PathLike | None = None, tmpdir: str | None = None):
     def writeSvgIfNeeded(svgPath: str | PathLike | None) -> Path:
         if svgPath is None:
-            svgfile = Path(tmpdir, glyph.glyphname + '.svg')
+            svgfile = Path(tmpdir, escapeGlyphName(glyph.glyphname) + '.svg')
             with svgfile.open('w') as f:
                 f.write(glyph.persistent['SVG'])
             return svgfile
@@ -101,24 +115,35 @@ def _hasMultipleGlyph(svg: str) -> bool:
 
 
 def _setSVGSize(ttf: ttFont.TTFont, svg: str, glyphid: int) -> str:
+    def fixHeader(head: str, tag: str, val: str) -> str:
+        if (tag + '="') not in head:
+            return head[:-1] + ' {}="{}">'.format(tag, val)
+        else:
+            return head
+
     head = svg[:(svg.find('>') + 1)]
     body = svg[(svg.find('>') + 1):]
     glyphname = ttf.getGlyphOrder()[glyphid]
-    if 'viewBox="' not in head:
-        head = head[:-1] + ' viewBox="{} {} {} {}">'.format(
-            0,
-            -ttf['hhea'].ascender,
-            ttf['hmtx'][glyphname][0],
-            ttf['hhea'].ascender - ttf['hhea'].descender,
-        )
-        return head + body
-    else:
-        return svg
+    head = fixHeader(head, 'viewBox', ' '.join([
+        '0',
+        str(-ttf['hhea'].ascender),
+        str(ttf['hmtx'][glyphname][0]),
+        str(ttf['hhea'].ascender - ttf['hhea'].descender),
+    ]))
+    head = fixHeader(head, 'viewBox', ' '.join([
+        '0',
+        str(-ttf['hhea'].ascender),
+        str(ttf['hmtx'][glyphname][0]),
+        str(ttf['hhea'].ascender - ttf['hhea'].descender),
+    ]))
+    head = fixHeader(head, 'width', str(ttf['hmtx'][glyphname][0]))
+    head = fixHeader(head, 'height', str(ttf['hhea'].ascender - ttf['hhea'].descender))
+    return head + body
 
 
 def _separateSVG(ttf: ttFont.TTFont, svg: str, glyphid: int, tmpdir: str):
     glyphname = ttf.getGlyphOrder()[glyphid]
-    svgfile = Path(tmpdir, glyphname + '.svg')
+    svgfile = Path(tmpdir, escapeGlyphName(glyphname) + '.svg')
     if _hasMultipleGlyph(svg):
         newsvg = _setSVGSize(ttf, _getPartSVG(svg, glyphid), glyphid)
     elif 'id="glyph' in svg:
@@ -212,20 +237,20 @@ def _colr2svg(font: fontforge.font, tmpdir: str):
         surface = surfaceClass()
         with surface.canvas(canvasPos) as canvas:
             f.drawGlyph(glyphname, canvas)
-        surface.saveImage(str(Path(tmpdir, glyphname + '.svg')))
+        surface.saveImage(str(Path(tmpdir, escapeGlyphName(glyphname) + '.svg')))
 
 
 def _importSvg(font: fontforge.font, tmpdir: str):
     fontforge.logWarning('Reading SVG files. Please be patient.')
     for glyph in font.glyphs():
-        svgPath = Path(tmpdir, glyph.glyphname + '.svg')
+        svgPath = Path(tmpdir, escapeGlyphName(glyph.glyphname) + '.svg')
         if svgPath.exists():
             loadSvg(glyph, svgPath)
         elif (svgPath := Path(tmpdir, 'glyph' + str(glyph.originalgid).zfill(5) + '.svg')).exists():
             loadSvg(glyph, svgPath)
 
 
-def loadColrColorFont(font: fontforge.font):
+def loadColrColorFontMetadata(font: fontforge.font):
     if not hasColrTable(font):
         return
     with TemporaryDirectory() as tmpdir:
@@ -233,7 +258,7 @@ def loadColrColorFont(font: fontforge.font):
         _importSvg(font, tmpdir)
 
 
-def loadSvgColorFont(font: fontforge.font):
+def loadSvgColorFontMetadata(font: fontforge.font):
     if not hasSvgTable(font):
         return
     with TemporaryDirectory() as tmpdir:
@@ -279,19 +304,20 @@ def _addGenerateHook(font: fontforge.font):
 
 def _loadHook_ttf(font: fontforge.font):
     if hasColrTable(font):
-        loadColrColorFont(font)
+        loadColrColorFontMetadata(font)
     elif hasSvgTable(font):
-        if fontforge.ask(
-            'SVG color font',
-            "This font has 'SVG ' table.\n"
-                "This means this is a color font.\n"
-                "Import the SVG documents included in the font?\n"
-                "This may take some minutes.",
-            ('_Yes', '_No'),
-            0,
-            1,
-        ) == 0:
-            loadSvgColorFont(font)
+        # if fontforge.ask(
+        #     'SVG color font',
+        #     "This font has 'SVG ' table.\n"
+        #         "This means this is a color font.\n"
+        #         "Import the SVG documents included in the font?\n"
+        #         "This may take some minutes.",
+        #     ('_Yes', '_No'),
+        #     0,
+        #     1,
+        # ) == 0:
+        #     loadSvgColorFont(font)
+        loadSvgColorFontMetadata(font)
 
 
 def loadHook(font: fontforge.font):

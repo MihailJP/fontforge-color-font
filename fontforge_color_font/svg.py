@@ -1,7 +1,7 @@
 import fontforge
 from os import PathLike
 from pathlib import Path
-from .load import loadSvg
+from .load import loadSvg, escapeGlyphName
 
 
 class NoColorGlyphError(RuntimeError):
@@ -80,7 +80,7 @@ def exportSvgMenu(u, fontOrGlyph: fontforge.font | fontforge.glyph):
             filepath, suffix = _svgPath(filename)
             for glyph in glyphs:
                 try:
-                    exportSvg(glyph, filepath.joinpath(Path(glyph.glyphname + suffix)))
+                    exportSvg(glyph, filepath.joinpath(Path(escapeGlyphName(glyph.glyphname) + suffix)))
                 except NoColorGlyphError as e:
                     fontforge.logWarning(str(e))
 
