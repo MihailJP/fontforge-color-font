@@ -4,6 +4,8 @@ from os import PathLike
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from subprocess import run
+from functools import partial, Placeholder
+import re
 from .svg import svgIsRegistered, exportSvg
 
 
@@ -18,7 +20,17 @@ def _getGlyphNameFromPaint(paint) -> str | None:
         return None
 
 
-def _exportSVGGlyphs(font: fontforge.font, tmpdir: str) -> tuple[dict[str, str], list[Path]]:
+def _setSvgGlyphID(svg: str, glyphid: int) -> str:
+    svg2 = svg[(svg.find('<svg')):]
+    head = svg2[:(svg2.find('>') + 1)]
+    body = svg2[(svg2.find('>') + 1):]
+    head = re.sub(r'\bid="[^"]*"', '', head)
+    body = body.replace('glyph', '_glyph')
+    head = head.replace('<svg', '<svg id="glyph{}"'.format(glyphid))
+    return head + body
+
+
+def _exportSVGGlyphs(font: fontforge.font, ttf: ttFont.TTFont, tmpdir: str) -> tuple[dict[str, str], list[Path]]:
     colorGlyphs = [g for g in font.glyphs() if svgIsRegistered(g)]
     glyphNameConversion = {}
     svgFiles = []
@@ -26,7 +38,11 @@ def _exportSVGGlyphs(font: fontforge.font, tmpdir: str) -> tuple[dict[str, str],
         tmpGlyphName = 'u{:05X}'.format(i + 0xf0000)
         glyphNameConversion[tmpGlyphName] = glyph.glyphname
         svgFile = Path(tmpdir, tmpGlyphName + '.svg')
-        exportSvg(glyph, svgFile)
+        if glyph.glyphname in ttf.getGlyphOrder():
+            fltrFunc = partial(_setSvgGlyphID, Placeholder, ttf.getGlyphOrder().index(glyph.glyphname))
+        else:
+            fltrFunc = None
+        exportSvg(glyph, svgFile, fltrFunc)
         svgFiles.append(svgFile)
     return (glyphNameConversion, svgFiles)
 
@@ -111,7 +127,7 @@ def colorFontProcess(font: fontforge.font, target: str | PathLike):
     assert descent <= 0
 
     with TemporaryDirectory() as tmpdir:
-        glyphNameConversion, svgFiles = _exportSVGGlyphs(font, tmpdir)
+        glyphNameConversion, svgFiles = _exportSVGGlyphs(font, ttf, tmpdir)
         run([
             'nanoemoji',
             '--color_format', 'glyf_colr_1',

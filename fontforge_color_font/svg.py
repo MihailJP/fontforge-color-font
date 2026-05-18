@@ -1,6 +1,7 @@
 import fontforge
 from os import PathLike
 from pathlib import Path
+from typing import Callable
 from .load import loadSvg, escapeGlyphName
 
 
@@ -32,16 +33,20 @@ def deleteSvg(glyph: fontforge.glyph):
             glyph.persistent = None
 
 
-def exportSvg(glyph: fontforge.glyph, path: str | PathLike):
+def exportSvg(glyph: fontforge.glyph, path: str | PathLike, f: Callable[[str], str] | None = None):
     """Exports color glyph SVG
 
     :param glyph: a Fontforge glyph object which has color glyph SVG in ``persistent`` ``dict``
     :param path: destination path of exported SVG file
+    :param f: filter function
     :raises ``NoColorGlyphError``: if there is not SVG color glyph definition in the glyph.
     """
     if svgIsRegistered(glyph):
         with Path(path).open('w') as svg:
-            svg.write(glyph.persistent['SVG'])
+            if f:
+                svg.write(f(glyph.persistent['SVG']))
+            else:
+                svg.write(glyph.persistent['SVG'])
     else:
         raise NoColorGlyphError("glyph '{}' does not have color font definition".format(glyph.glyphname))
 
