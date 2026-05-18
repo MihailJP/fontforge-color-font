@@ -49,9 +49,11 @@ def _searchBase(ttf: ttFont.TTFont, glyph: str) -> str | None:
 
 def _setMetrics(ttf: ttFont.TTFont, colrttf: ttFont.TTFont, glyph: str, glyphNameConversion: dict[str, str]):
     if base := _searchBase(colrttf, glyph):
+        targetWidth = ttf['hmtx'].metrics[glyphNameConversion[base]][0]
+        sourceWidth, sourceLsb = colrttf['hmtx'].metrics[glyph]
         ttf['hmtx'].metrics[glyph] = (
-            ttf['hmtx'].metrics[glyphNameConversion[base]][0],
-            colrttf['hmtx'].metrics[glyph][1],
+            targetWidth,
+            int(sourceLsb - (sourceWidth - targetWidth) / 2),
         )
         if 'vmtx' in ttf:
             ttf['vmtx'].metrics[glyph] = (
