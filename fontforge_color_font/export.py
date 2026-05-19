@@ -7,6 +7,7 @@ from tempfile import TemporaryDirectory
 
 import fontforge
 from fontTools.ttLib import ttFont
+from fontTools.ttLib.tables.S_V_G_ import SVGDocument
 
 from .svg import svgIsRegistered, exportSvg
 
@@ -118,6 +119,18 @@ def _copyColrCpal(ttf: ttFont.TTFont, colrttf: ttFont.TTFont, glyphNameConversio
     )
 
 
+def _setSVGTable(ttf: ttFont.TTFont, tmpdir: str, glyphNameConversion: dict[str, str]):
+    assert 'SVG ' not in ttf
+    ttf['SVG '] = ttFont.newTable('SVG ')
+    ttf['SVG '].__dict__['docList'] = []
+    glyphNameInverseConversion = dict((v, k) for k, v in glyphNameConversion.items())
+    for gid, glyph in (g for g in enumerate(ttf.getGlyphOrder()) if g[1] in glyphNameInverseConversion):
+        with Path(tmpdir, glyphNameInverseConversion[glyph] + '.svg').open() as svg:
+            ttf['SVG '].docList.append(
+                SVGDocument(svg.read(), gid, gid)
+            )
+
+
 def colorFontProcess(font: fontforge.font, target: str | PathLike):
     if not str(target).endswith('.ttf'):
         return
@@ -144,6 +157,8 @@ def colorFontProcess(font: fontforge.font, target: str | PathLike):
         colrttf = ttFont.TTFont(Path(tmpdir, 'build', 'Font.ttf'))
         _copyColrGlyphs(ttf, colrttf, glyphNameConversion)
         _copyColrCpal(ttf, colrttf, glyphNameConversion)
+
+        _setSVGTable(ttf, tmpdir, glyphNameConversion)
 
         ttf.save(target)
 
