@@ -4,7 +4,7 @@ import re
 from subprocess import run
 from sys import stderr
 from tempfile import TemporaryDirectory
-from typing import Literal, Callable
+from typing import Callable
 
 from blackrenderer.font import BlackRendererFont
 from blackrenderer.backends import getSurfaceClass
@@ -12,6 +12,8 @@ import fontforge
 from fontTools.ttLib import ttFont
 from reportlab.graphics import renderPM
 from svglib.svglib import svg2rlg
+
+from fontforge_plugin_helper import addFontGenerateHook
 
 
 SVG_Magic_Comment = '<!-- FONTFORGE_COLOR_FONT_SVG_READER -->'
@@ -278,29 +280,11 @@ def _generatePostHook(font: fontforge.font, target: str):
     pass
 
 
-def _addHook(
-    font: fontforge.font,
-    name: Literal['generateFontPreHook', 'generateFontPostHook'],
-    hook: Callable[[fontforge.font, str], None]
-):
-    assert isinstance(font.temporary, dict)
-    if name in font.temporary:
-        currentHook = font.temporary[name]
-
-        def chainHook(font: fontforge.font, target: str):
-            currentHook(font, target)
-            hook(font, target)
-
-        font.temporary[name] = chainHook
-    else:
-        font.temporary[name] = hook
-
-
 def _addGenerateHook(font: fontforge.font):
     if not isinstance(font.temporary, dict):
         font.temporary = {}
-    _addHook(font, 'generateFontPreHook', _generatePreHook)
-    _addHook(font, 'generateFontPostHook', _generatePostHook)
+    addFontGenerateHook(font, 'generateFontPreHook', _generatePreHook)
+    addFontGenerateHook(font, 'generateFontPostHook', _generatePostHook)
 
 
 def _loadHook_ttf(font: fontforge.font):

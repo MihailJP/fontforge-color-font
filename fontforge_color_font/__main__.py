@@ -1,31 +1,12 @@
-from typing import Literal, Callable
-
 import fontforge
 
 from . import load, svg, export
-
-
-def _addHook(
-    name: Literal['newFontHook', 'loadFontHook'],
-    hook: Callable[[fontforge.font], None]
-):
-    assert isinstance(fontforge.hooks, dict)
-    if name in fontforge.hooks:
-        currentHook = fontforge.hooks[name]
-
-        def chainHook(font: fontforge.font):
-            currentHook(font)
-            hook(font)
-
-        fontforge.hooks[name] = chainHook
-    else:
-        fontforge.hooks[name] = hook
+from fontforge_plugin_helper import addSystemHook
 
 
 def fontforge_plugin_init(**kw):
-    if fontforge.hasUserInterface:
-        _addHook('loadFontHook', load.loadHook)
-        _addHook('newFontHook', load.newFontHook)
+    addSystemHook('loadFontHook', load.loadHook, enableIfScriptMode=False)
+    addSystemHook('newFontHook', load.newFontHook, enableIfScriptMode=False)
     fontforge.registerMenuItem(
         callback=svg.importSvgMenu,
         enable=None,
