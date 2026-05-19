@@ -1,16 +1,17 @@
-import fontforge
-from typing import Literal, Callable
-from fontTools.ttLib import ttFont
-from tempfile import TemporaryDirectory
-from subprocess import run
 from os import PathLike
 from pathlib import Path
-from svglib.svglib import svg2rlg
-from reportlab.graphics import renderPM
-from sys import stderr
 import re
+from subprocess import run
+from sys import stderr
+from tempfile import TemporaryDirectory
+from typing import Literal, Callable
+
 from blackrenderer.font import BlackRendererFont
 from blackrenderer.backends import getSurfaceClass
+import fontforge
+from fontTools.ttLib import ttFont
+from reportlab.graphics import renderPM
+from svglib.svglib import svg2rlg
 
 
 SVG_Magic_Comment = '<!-- FONTFORGE_COLOR_FONT_SVG_READER -->'

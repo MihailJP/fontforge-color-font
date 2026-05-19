@@ -1,11 +1,13 @@
-import fontforge
-from fontTools.ttLib import ttFont
+from functools import partial, Placeholder
 from os import PathLike
 from pathlib import Path
-from tempfile import TemporaryDirectory
-from subprocess import run
-from functools import partial, Placeholder
 import re
+from subprocess import run
+from tempfile import TemporaryDirectory
+
+import fontforge
+from fontTools.ttLib import ttFont
+
 from .svg import svgIsRegistered, exportSvg
 
 

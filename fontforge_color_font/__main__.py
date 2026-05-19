@@ -1,6 +1,8 @@
-from . import load, svg, export
-import fontforge
 from typing import Literal, Callable
+
+import fontforge
+
+from . import load, svg, export
 
 
 def _addHook(

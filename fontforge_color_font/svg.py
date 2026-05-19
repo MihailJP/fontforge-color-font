@@ -1,7 +1,9 @@
-import fontforge
 from os import PathLike
 from pathlib import Path
 from typing import Callable
+
+import fontforge
+
 from .load import loadSvg, escapeGlyphName
 
 
