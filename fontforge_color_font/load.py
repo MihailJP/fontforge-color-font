@@ -20,6 +20,11 @@ SVG_Magic_Comment = '<!-- FONTFORGE_COLOR_FONT_SVG_READER -->'
 
 
 def hasSvgTable(font: fontforge.font) -> bool:
+    """Check if the TTF has ``SVG `` table
+
+    :returns: ``True`` if ``font`` is a TTF and has ``SVG `` table
+    """
+
     if font.path.endswith('.ttf'):
         with ttFont.TTFont(font.path) as ttf:
             return 'SVG ' in ttf
@@ -28,6 +33,11 @@ def hasSvgTable(font: fontforge.font) -> bool:
 
 
 def hasColrTable(font: fontforge.font) -> bool:
+    """Check if the TTF has ``COLR`` table
+
+    :returns: ``True`` if ``font`` is a TTF and has ``COLR`` table
+    """
+
     if font.path.endswith('.ttf'):
         with ttFont.TTFont(font.path) as ttf:
             return 'COLR' in ttf
@@ -83,12 +93,35 @@ def glyphSvgToPng(glyph: fontforge.glyph, svgPath: str | PathLike | None = None,
 def loadSvg(glyph: fontforge.glyph, svgPath: str | PathLike):
     """Imports color glyph SVG
 
+    Imports color glyph SVG and stores into ``glyph.persistent['SVG']``.
+
+    SVG will be simplified using scour before being stored.
+
+    Although SVG is scalable as the name suggests, nominal size can be set
+    (usually aspect ratio is more important than width and height themselves.)
+    This plugin assumes that nominal width equals to the advance width (``glyph.width``) and
+    nominal height equals to ``hhea`` ascender plus absolute value of ``hhea`` descender.
+    Note that changes of those values will not reflect to the SVG.
+
+    Fontforge itself does not have capabilities editing color SVG; do it with dedicated tools like Inkscape.
+
+    Some capabilities of SVG are prohibited for color glyph definition.
+    See details at:
+    https://learn.microsoft.com/en-us/typography/opentype/spec/svg#svg-capability-requirements-and-restrictions
+
     :param glyph: a Fontforge glyph object
     :param path: path of SVG file to import
+    :raises ValueError: wrong extension is specified
+    :raises NotImplementedError: compressed SVG is not yet implemented
     """
     initGlyphPersistentDict(glyph)
-    with Path(svgPath).open() as svg:
-        svg = svg.read()
+    if svgPath.endswith('.svg'):
+        with Path(svgPath).open() as svg:
+            svg = svg.read()
+    elif svgPath.endswith('.svgz') or svgPath.endswith('.svg.gz'):
+        raise NotImplementedError('compressed SVG is not yet implemented')
+    else:
+        raise ValueError('the extension must be .svg, .svgz, or .svg.gz')
     glyph.persistent['SVG'] = svg[svg.find('<svg'):]
 
 
@@ -254,6 +287,12 @@ def _importSvg(font: fontforge.font, tmpdir: str):
 
 
 def loadColrColorFontMetadata(font: fontforge.font):
+    """Read ``COLR`` table
+
+    Convert ``COLR`` table into SVG and store into ``glyph.persistent['SVG']``.
+    If ``font`` is not a TTF or there is not ``COLR`` table, does nothing.
+
+    This is done with blackrenderer. Supports both COLRv0 and COLRv1."""
     if not hasColrTable(font):
         return
     with TemporaryDirectory() as tmpdir:
@@ -262,13 +301,30 @@ def loadColrColorFontMetadata(font: fontforge.font):
 
 
 def loadSvgColorFontMetadata(font: fontforge.font):
+    """Read ``SVG `` table
+
+    Read ``SVG `` table from TTF and store into ``glyph.persistent['SVG']``.
+    If ``font`` is not a TTF or there is not ``SVG `` table, does nothing.
+
+    An SVG document may contain multiple glyphs.
+    This plugin will split using scour; this may take some minutes.
+
+    :raises NotImplementedError: compressed SVG is not yet implemented
+    """
+
+    if not font.path.endswith('.ttf'):
+        return
     if not hasSvgTable(font):
         return
     with TemporaryDirectory() as tmpdir:
         ttf = ttFont.TTFont(font.path)
         print('Dumping into SVG files; this may take some minutes. Please be patient.')
         for doc in ttf['SVG '].docList:
-            _separateSVG_thousands(ttf, doc.data, doc.startGlyphID, doc.endGlyphID, tmpdir)
+            if doc.compressed:
+                raise NotImplementedError('compressed SVG is not yet implemented')
+            else:
+                svg = doc.data
+            _separateSVG_thousands(ttf, svg, doc.startGlyphID, doc.endGlyphID, tmpdir)
         _importSvg(font, tmpdir)
 
 
@@ -302,7 +358,10 @@ def _loadHook_ttf(font: fontforge.font):
         #     1,
         # ) == 0:
         #     loadSvgColorFont(font)
-        loadSvgColorFontMetadata(font)
+        try:
+            loadSvgColorFontMetadata(font)
+        except NotImplementedError as e:
+            fontforge.logWarning(str(e))
 
 
 def loadHook(font: fontforge.font):
