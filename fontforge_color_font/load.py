@@ -337,8 +337,6 @@ def _generatePostHook(font: fontforge.font, target: str):
 
 
 def _addGenerateHook(font: fontforge.font):
-    if not isinstance(font.temporary, dict):
-        font.temporary = {}
     addFontGenerateHook(font, 'generateFontPreHook', _generatePreHook)
     addFontGenerateHook(font, 'generateFontPostHook', _generatePostHook)
 
