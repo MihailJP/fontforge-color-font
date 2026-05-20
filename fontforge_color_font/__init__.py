@@ -1,7 +1,7 @@
 """Fontforge plugin for color fonts"""
 
 from .export import exportColorFont
-from .load import hasSvgTable, hasColrTable, loadSvg, loadColrColorFontMetadata, loadSvgColorFontMetadata
+from .load import hasSvgTable, hasColrTable, loadSvg, loadColrColorFontMetadata, loadSvgColorFontMetadata, loadColorFont
 from .svg import NoColorGlyphError, svgIsRegistered, deleteSvg, exportSvg
 
 __all__ = [
@@ -14,6 +14,7 @@ __all__ = [
     'loadSvg',
     'loadColrColorFontMetadata',
     'loadSvgColorFontMetadata',
+    'loadColorFont',
 
     # svg
     'NoColorGlyphError',

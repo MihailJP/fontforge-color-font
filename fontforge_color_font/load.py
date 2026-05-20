@@ -292,6 +292,8 @@ def loadColrColorFontMetadata(font: fontforge.font):
     Convert ``COLR`` table into SVG and store into ``glyph.persistent['SVG']``.
     If ``font`` is not a TTF or there is not ``COLR`` table, does nothing.
 
+    This function is called from ``loadColorFont()``.
+
     This is done with blackrenderer. Supports both COLRv0 and COLRv1."""
     if not hasColrTable(font):
         return
@@ -308,6 +310,8 @@ def loadSvgColorFontMetadata(font: fontforge.font):
 
     An SVG document may contain multiple glyphs.
     This plugin will split using scour; this may take some minutes.
+
+    This function is called from ``loadColorFont()``.
 
     :raises NotImplementedError: compressed SVG is not yet implemented
     """
@@ -326,6 +330,23 @@ def loadSvgColorFontMetadata(font: fontforge.font):
                 svg = doc.data
             _separateSVG_thousands(ttf, svg, doc.startGlyphID, doc.endGlyphID, tmpdir)
         _importSvg(font, tmpdir)
+
+
+def loadColorFont(fontfile: PathLike | str, flags=None, *, colrPreferred=True) -> fontforge.font:
+    """Load color font
+
+    :param fontfile: font file to load
+    :param flags: flags passed to ``fontforge.open()``
+    :param colrPreferred: ``True`` to prefer ``COLR`` if the font has both ``COLR`` and ``SVG `` tables
+    """
+    font = fontforge.open(str(fontfile), flags)
+    if hasSvgTable(font) and hasColrTable(font) and colrPreferred:
+        loadColrColorFontMetadata(font)
+    elif hasSvgTable(font):
+        loadSvgColorFontMetadata(font)
+    elif hasColrTable(font):
+        loadColrColorFontMetadata(font)
+    return font
 
 
 def _generatePreHook(font: fontforge.font, target: str):
