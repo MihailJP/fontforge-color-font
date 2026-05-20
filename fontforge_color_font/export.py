@@ -132,6 +132,32 @@ def _setSVGTable(ttf: ttFont.TTFont, tmpdir: str, glyphNameConversion: dict[str,
             )
 
 
+def _checkColrParam(colr) -> bool:
+    if colr is None:
+        return False
+    if not isinstance(colr, int):
+        raise TypeError('colr must be an int or None')
+    elif colr == 0:
+        raise NotImplementedError('COLR v0 is not supported yet')
+    elif colr == 1:
+        return True
+    else:
+        raise ValueError('invalid version of COLR')
+
+
+def _checkSvgParam(svg) -> bool:
+    if svg is None:
+        return False
+    if not isinstance(svg, int):
+        raise TypeError('svg must be an int or None')
+    elif svg == 0:
+        return True
+    elif 1 <= svg <= 9:
+        raise NotImplementedError('compressed SVG is not supported yet')
+    else:
+        raise ValueError('invalid parameter of SVG')
+
+
 def exportColorFont(
     font: fontforge.font,
     target: str | PathLike,
@@ -169,9 +195,7 @@ def exportColorFont(
 
         glyphNameConversion, svgFiles = _exportSVGGlyphs(font, ttf, tmpdir)
 
-        if colr is not None:
-            if colr == 0:
-                raise NotImplementedError('COLR v0 is not supported yet')
+        if _checkColrParam(colr):
             run([
                 'nanoemoji',
                 '--color_format', 'glyf_colr_' + str(colr),
@@ -187,9 +211,7 @@ def exportColorFont(
             _copyColrGlyphs(ttf, colrttf, glyphNameConversion)
             _copyColrCpal(ttf, colrttf, glyphNameConversion)
 
-        if svg is not None:
-            if svg > 0:
-                raise NotImplementedError('compressed SVG is not supported yet')
+        if _checkSvgParam(svg):
             _setSVGTable(ttf, tmpdir, glyphNameConversion)
 
         ttf.save(str(target))
