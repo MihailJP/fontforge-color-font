@@ -4,6 +4,7 @@ from pathlib import Path
 import re
 from subprocess import run
 from tempfile import TemporaryDirectory
+from typing import Literal
 
 import fontforge
 from fontTools.ttLib import ttFont
@@ -131,37 +132,68 @@ def _setSVGTable(ttf: ttFont.TTFont, tmpdir: str, glyphNameConversion: dict[str,
             )
 
 
-def colorFontProcess(font: fontforge.font, target: str | PathLike):
-    if not str(target).endswith('.ttf'):
-        return
+def exportColorFont(
+    font: fontforge.font,
+    target: str | PathLike,
+    *,
+    colr: Literal[0, 1] | None = None,
+    svg: Literal[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] | None = None,
+    **options,
+):
+    """Export color font
 
-    font.generate(str(target))
-    ttf = ttFont.TTFont(target)
-    ascent = ttf['hhea'].ascent
-    descent = ttf['hhea'].descent
-    assert descent <= 0
+    Export the color TTF with ``COLR`` and/or ``SVG `` tables.
+
+    ``COLR`` table is so complicated that this plugin requires "nanoemoji" tool to add it.
+
+    :param font: Fontforge font object
+    :param target: TTF file to export
+    :param colr: version of ``COLR`` table, or ``None`` to exclude
+    :param svg: compression level of gzipped SVG; 0 for uncompressed, 1 for fast but least compressed, \
+        9 for most compressed but slow. ``None`` to exclude ``SVG `` table
+    :param options: other options passed to ``fontforge.font.generate()``
+    :raises ValueError: wrong extention is specified
+    :raises NotImplementedError: COLR v0 and compressed SVG are not yet supported
+    """
+
+    if not str(target).endswith('.ttf'):
+        raise ValueError('wrong extention')
 
     with TemporaryDirectory() as tmpdir:
+        tmpTtfPath = Path(tmpdir, 'tmp.ttf')
+        font.generate(str(tmpTtfPath), **options)
+        ttf = ttFont.TTFont(str(tmpTtfPath))
+        ascent = ttf['hhea'].ascent
+        descent = ttf['hhea'].descent
+        assert descent <= 0
+
         glyphNameConversion, svgFiles = _exportSVGGlyphs(font, ttf, tmpdir)
-        run([
-            'nanoemoji',
-            '--color_format', 'glyf_colr_1',
-            '--build_dir', str(Path(tmpdir, 'build')),
-            '--noclip_to_viewbox',
-            '--ascender', str(ascent),
-            '--descender', str(descent),
-            '--upem', str(ascent - descent),
-        ] + [str(p) for p in svgFiles], check=True)
-        # Path(tmpdir, 'build', 'Font.ttf').copy(Path('testxp.ttf'))  # debug
 
-        colrttf = ttFont.TTFont(Path(tmpdir, 'build', 'Font.ttf'))
-        _copyColrGlyphs(ttf, colrttf, glyphNameConversion)
-        _copyColrCpal(ttf, colrttf, glyphNameConversion)
+        if colr is not None:
+            if colr == 0:
+                raise NotImplementedError('COLR v0 is not supported yet')
+            run([
+                'nanoemoji',
+                '--color_format', 'glyf_colr_' + str(colr),
+                '--build_dir', str(Path(tmpdir, 'build')),
+                '--noclip_to_viewbox',
+                '--ascender', str(ascent),
+                '--descender', str(descent),
+                '--upem', str(ascent - descent),
+            ] + [str(p) for p in svgFiles], check=True)
+            # Path(tmpdir, 'build', 'Font.ttf').copy(Path('testxp.ttf'))  # debug
 
-        _setSVGTable(ttf, tmpdir, glyphNameConversion)
+            colrttf = ttFont.TTFont(Path(tmpdir, 'build', 'Font.ttf'))
+            _copyColrGlyphs(ttf, colrttf, glyphNameConversion)
+            _copyColrCpal(ttf, colrttf, glyphNameConversion)
 
-        ttf.save(target)
+        if svg is not None:
+            if svg > 0:
+                raise NotImplementedError('compressed SVG is not supported yet')
+            _setSVGTable(ttf, tmpdir, glyphNameConversion)
+
+        ttf.save(str(target))
 
 
 def testSvgMenu(u, font: fontforge.font):
-    colorFontProcess(font, 'test.ttf')
+    exportColorFont(font, 'test.ttf')
