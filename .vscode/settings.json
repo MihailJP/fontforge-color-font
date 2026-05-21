@@ -1,0 +1,9 @@
+{
+    "markdownlint.config": {
+        "no-space-in-code": false  // space is mandatory for table tag 'SVG '
+    },
+    "flake8.args": [
+        "--max-complexity=10",
+        "--max-line-length=127"
+    ]
+}
