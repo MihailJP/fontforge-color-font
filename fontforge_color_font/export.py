@@ -219,3 +219,72 @@ def exportColorFont(
 
 def testSvgMenu(u, font: fontforge.font):
     exportColorFont(font, 'test.ttf')
+
+
+def exportColorFontMenu(u, font: fontforge.font):
+    def valOrNone(enabled: bool, x: int) -> int | None:
+        return x if enabled else None
+
+    ans = fontforge.askMulti(
+        'Export color font',
+        [
+            {
+                'type': 'savepath',
+                'question': 'Export as:',
+                'tag': 'filename',
+                'filter': '*.ttf',
+            },
+            {
+                'type': 'choice',
+                'tag': 'tags',
+                'checks': True,
+                'answers': [
+                    {'name': "'COLR'", 'tag': 'COLR', 'default': True},
+                    {'name': "'SVG '", 'tag': 'SVG', 'default': True},
+                ],
+                'multiple': True,
+            },
+            {
+                'type': 'choice',
+                'question': "'COLR' version:",
+                'tag': 'colr',
+                'checks': True,
+                'answers': [
+                    {'name': '0', 'tag': 0},
+                    {'name': '1', 'tag': 1, 'default': True},
+                ],
+            },
+            {
+                'type': 'choice',
+                'question': "SVG compression:",
+                'tag': '_svg',
+                'checks': True,
+                'answers': [],
+            },
+            {
+                'type': 'choice',
+                'tag': 'svg',
+                'checks': True,
+                'answers': [
+                    {'name': 'Plain', 'tag': 0, 'default': True},
+                    {'name': '', 'tag': 1},
+                    {'name': '', 'tag': 2},
+                    {'name': '', 'tag': 3},
+                    {'name': '', 'tag': 4},
+                    {'name': '', 'tag': 5},
+                    {'name': '', 'tag': 6},
+                    {'name': '', 'tag': 7},
+                    {'name': '', 'tag': 8},
+                    {'name': 'Max', 'tag': 9},
+                ],
+            },
+        ]
+    )
+
+    if ans:
+        exportColorFont(
+            font,
+            ans['filename'],
+            colr=valOrNone('COLR' in ans['tags'], ans['colr']),
+            svg=valOrNone('SVG' in ans['tags'], ans['svg'])
+        )

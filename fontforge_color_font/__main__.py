@@ -7,6 +7,28 @@ from fontforge_plugin_helper import addSystemHook
 def fontforge_plugin_init(**kw):
     addSystemHook('loadFontHook', load.loadHook, enableIfScriptMode=False)
     addSystemHook('newFontHook', load.newFontHook, enableIfScriptMode=False)
+
+    fontforge.registerMenuItem(
+        callback=load.loadColorFontMenu,
+        enable=None,
+        context="Font",
+        name="Open color font...",
+        submenu='Color font',
+    )
+    fontforge.registerMenuItem(
+        callback=export.exportColorFontMenu,
+        enable=None,
+        context="Font",
+        name="Export color font...",
+        submenu='Color font',
+    )
+
+    fontforge.registerMenuItem(
+        divider=True,
+        context="Font",
+        submenu='Color font',
+    )
+
     fontforge.registerMenuItem(
         callback=svg.importSvgMenu,
         enable=None,
@@ -26,12 +48,5 @@ def fontforge_plugin_init(**kw):
         enable=svg.svgIsRegisteredMenu,
         context=("Font", "Glyph"),
         name="Delete SVG color font glyph",
-        submenu='Color font',
-    )
-    fontforge.registerMenuItem(
-        callback=export.testSvgMenu,
-        enable=None,
-        context="Font",
-        name="Export test",
         submenu='Color font',
     )

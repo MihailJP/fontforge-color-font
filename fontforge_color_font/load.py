@@ -9,7 +9,7 @@ from typing import Callable
 from blackrenderer.font import BlackRendererFont
 from blackrenderer.backends import getSurfaceClass
 import fontforge
-from fontTools.ttLib import ttFont
+from fontTools.ttLib import ttFont, TTLibError
 from reportlab.graphics import renderPM
 from svglib.svglib import svg2rlg
 
@@ -339,7 +339,10 @@ def loadColorFont(fontfile: PathLike | str, flags=None, *, colrPreferred=True) -
     :param flags: flags passed to ``fontforge.open()``
     :param colrPreferred: ``True`` to prefer ``COLR`` if the font has both ``COLR`` and ``SVG `` tables
     """
-    font = fontforge.open(str(fontfile), flags)
+    if flags:
+        font = fontforge.open(str(fontfile), flags)
+    else:
+        font = fontforge.open(str(fontfile))
     if hasSvgTable(font) and hasColrTable(font) and colrPreferred:
         loadColrColorFontMetadata(font)
     elif hasSvgTable(font):
@@ -391,3 +394,33 @@ def loadHook(font: fontforge.font):
 
 def newFontHook(font: fontforge.font):
     _addGenerateHook(font)
+
+
+def _selectColrOrSvg(filename: str) -> bool | None:
+    try:
+        with ttFont.TTFont(filename) as ttf:
+            if 'SVG ' in ttf and 'COLR' in ttf:
+                result = fontforge.ask(
+                    "'COLR' and 'SVG ' found",
+                    (
+                        "The font has both 'COLR' and 'SVG '.\n"
+                        "Which one to read?"
+                    ),
+                    ('COLR', 'SVG', 'Cancel'),
+                    0,
+                    2,
+                )
+                return [True, False, None][result]
+            else:
+                return False
+    except TTLibError:
+        return None
+
+
+def loadColorFontMenu(u, font: fontforge.font):
+    if filename := fontforge.openFilename('Open color font', '', "*.ttf"):
+        if (colrPreferred := _selectColrOrSvg(filename)) is not None:
+            loadColorFont(filename, colrPreferred=colrPreferred)
+        else:
+            fontforge.logWarning(filename + ' does not seem a TTF')
+            fontforge.open(filename)
