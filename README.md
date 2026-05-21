@@ -111,6 +111,7 @@ SVG documents must be named same as glyph name except:
 
 - uppercase letters other than code points (uniXXXX, uXXXXX, or u10XXXX):
   to work with case-insensitive file systems, an underscore must precede
+- underscore itself: another underscore must precede for disambiguation
 - same name as DOS/Windows reserved file names
 
 For color glyph definitions, some SVG capability is prohibited.
