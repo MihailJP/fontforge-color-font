@@ -13,7 +13,7 @@ from fontTools.ttLib import ttFont
 from reportlab.graphics import renderPM
 from svglib.svglib import svg2rlg
 
-from fontforge_plugin_helper import addFontGenerateHook
+from fontforge_plugin_helper import generationHookSetter
 
 
 SVG_Magic_Comment = '<!-- FONTFORGE_COLOR_FONT_SVG_READER -->'
@@ -357,9 +357,7 @@ def _generatePostHook(font: fontforge.font, target: str):
     pass
 
 
-def _addGenerateHook(font: fontforge.font):
-    addFontGenerateHook(font, 'generateFontPreHook', _generatePreHook)
-    addFontGenerateHook(font, 'generateFontPostHook', _generatePostHook)
+_addGenerateHook = generationHookSetter(_generatePreHook, _generatePostHook, enableIfScriptMode=False)
 
 
 def _loadHook_ttf(font: fontforge.font):
