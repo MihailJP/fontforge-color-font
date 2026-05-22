@@ -1,4 +1,4 @@
-from functools import partial, Placeholder
+from functools import partial
 from os import PathLike
 from pathlib import Path
 import re
@@ -43,7 +43,7 @@ def _exportSVGGlyphs(font: fontforge.font, ttf: ttFont.TTFont, tmpdir: str) -> t
         glyphNameConversion[tmpGlyphName] = glyph.glyphname
         svgFile = Path(tmpdir, tmpGlyphName + '.svg')
         if glyph.glyphname in ttf.getGlyphOrder():
-            fltrFunc = partial(_setSvgGlyphID, Placeholder, ttf.getGlyphOrder().index(glyph.glyphname))
+            fltrFunc = partial(_setSvgGlyphID, glyphid=ttf.getGlyphOrder().index(glyph.glyphname))
         else:
             fltrFunc = None
         exportSvg(glyph, svgFile, fltrFunc)
