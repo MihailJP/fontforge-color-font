@@ -15,6 +15,7 @@ This plugin uses these programs as backend:
 - [fonttools](https://github.com/fonttools/fonttools)
 - [scour](https://github.com/scour-project/scour) SVG optimizer
 - [blackrenderer](https://github.com/fontra/black-renderer) converts `COLR` to SVG
+- [svglib](https://github.com/deeplook/svglib)
 - [nanoemoji](https://github.com/googlefonts/nanoemoji) converts SVGs to `COLR`
 
 This module requires Python 3.10 or later.

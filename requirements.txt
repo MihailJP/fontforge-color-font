@@ -1,0 +1,4 @@
+blackrenderer
+fonttools
+svglib
+fontforge_plugin_helper >= 0.1.1
