@@ -68,15 +68,18 @@ def escapeGlyphName(glyphname: str) -> str:
 
 def _glyphSvgToPng(glyph: fontforge.glyph, svgPath: str | PathLike | None, tmpdir: str):
     pngPath = Path(tmpdir, escapeGlyphName(glyph.glyphname) + '.png')
-    drawing = svg2rlg(svgPath)
-    renderPM.drawToFile(drawing, pngPath, fmt='PNG')
-    glyph.importOutlines(str(pngPath))
+    if svgPath:
+        drawing = svg2rlg(svgPath)
+        renderPM.drawToFile(drawing, pngPath, fmt='PNG')
+        glyph.importOutlines(str(pngPath))
 
 
 def glyphSvgToPng(glyph: fontforge.glyph, svgPath: str | PathLike | None = None, tmpdir: str | None = None):
     def writeSvgIfNeeded(svgPath: str | PathLike | None) -> Path:
+        initGlyphPersistentDict(glyph)
+        assert isinstance(glyph.persistent, dict)
         if svgPath is None:
-            svgfile = Path(tmpdir, escapeGlyphName(glyph.glyphname) + '.svg')
+            svgfile = Path(str(tmpdir), escapeGlyphName(glyph.glyphname) + '.svg')
             with svgfile.open('w') as f:
                 f.write(glyph.persistent['SVG'])
             return svgfile
@@ -115,10 +118,11 @@ def loadSvg(glyph: fontforge.glyph, svgPath: str | PathLike):
     :raises NotImplementedError: compressed SVG is not yet implemented
     """
     initGlyphPersistentDict(glyph)
-    if svgPath.endswith('.svg'):
+    assert isinstance(glyph.persistent, dict)
+    if str(svgPath).endswith('.svg'):
         with Path(svgPath).open() as svg:
             svg = svg.read()
-    elif svgPath.endswith('.svgz') or svgPath.endswith('.svg.gz'):
+    elif str(svgPath).endswith('.svgz') or str(svgPath).endswith('.svg.gz'):
         raise NotImplementedError('compressed SVG is not yet implemented')
     else:
         raise ValueError('the extension must be .svg, .svgz, or .svg.gz')
@@ -270,6 +274,7 @@ def _colr2svg(font: fontforge.font, tmpdir: str):
             ttf['hhea'].ascender,
         )
         surfaceClass = getSurfaceClass('svg')
+        assert surfaceClass is not None
         surface = surfaceClass()
         with surface.canvas(canvasPos) as canvas:
             f.drawGlyph(glyphname, canvas)

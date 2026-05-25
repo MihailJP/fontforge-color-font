@@ -75,15 +75,15 @@ def _setMetrics(ttf: ttFont.TTFont, colrttf: ttFont.TTFont, glyph: str, glyphNam
             int(sourceLsb - (sourceWidth - targetWidth) / 2),
         )
         if 'vmtx' in ttf:
-            ttf['vmtx'].metrics[glyph] = (
-                ttf['vmtx'].metrics[glyphNameConversion[base]][0],
+            ttf['vmtx'].metrics[glyph] = (  # type: ignore
+                ttf['vmtx'].metrics[glyphNameConversion[base]][0],  # type: ignore
                 ttf['hhea'].ascender - colrttf['glyf'][glyph].yMax,
             )
     else:
         ttf['hmtx'].metrics[glyph] = colrttf['hmtx'].metrics[glyph]
         if 'vmtx' in ttf:
-            ttf['vmtx'].metrics[glyph] = (
-                ttf['hhea'].ascender + ttf['OS/2'].sTypoDescender,
+            ttf['vmtx'].metrics[glyph] = (  # type: ignore
+                ttf['hhea'].ascender + ttf['OS/2'].sTypoDescender,  # type: ignore
                 ttf['hhea'].ascender - colrttf['glyf'][glyph].yMax,
             )
 
@@ -97,7 +97,7 @@ def _copyColrGlyphs(ttf: ttFont.TTFont, colrttf: ttFont.TTFont, glyphNameConvers
         _getGlyphNameFromPaint(b.Paint) for b in
         colrttf['COLR'].table.BaseGlyphList.BaseGlyphPaintRecord if
         hasattr(b, 'Paint') and _getGlyphNameFromPaint(b.Paint)
-    ))
+    ))  # type: ignore
 
     glyphs = list(ttf.getGlyphOrder())
     glyphs += colrLayers
@@ -254,9 +254,7 @@ def exportColorFontMenu(u, font: fontforge.font):
     )
 
     if ans:
-        exportColorFont(
-            font,
-            ans['filename'],
-            colr=ans['colr'],
-            svg=ans['svg'],
-        )
+        assert isinstance(ans['filename'], str)
+        assert isinstance(ans['colr'], int)
+        assert isinstance(ans['svg'], int)
+        exportColorFont(font, ans['filename'], colr=ans['colr'], svg=ans['svg'])

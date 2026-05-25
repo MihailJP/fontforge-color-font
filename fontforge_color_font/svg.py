@@ -30,6 +30,7 @@ def deleteSvg(glyph: fontforge.glyph):
     :param glyph: a Fontforge glyph object which has color glyph SVG in ``persistent`` ``dict``
     """
     if svgIsRegistered(glyph):
+        assert isinstance(glyph.persistent, dict)
         del glyph.persistent['SVG']
         if glyph.persistent:
             glyph.persistent = None
@@ -44,6 +45,7 @@ def exportSvg(glyph: fontforge.glyph, path: str | PathLike, f: Callable[[str], s
     :raises ``NoColorGlyphError``: if there is not SVG color glyph definition in the glyph.
     """
     if svgIsRegistered(glyph):
+        assert isinstance(glyph.persistent, dict)
         with Path(path).open('w') as svg:
             if f:
                 svg.write(f(glyph.persistent['SVG']))
