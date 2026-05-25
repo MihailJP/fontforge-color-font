@@ -312,8 +312,6 @@ def loadSvgColorFontMetadata(font: fontforge.font):
     This plugin will split using scour; this may take some minutes.
 
     This function is called from ``loadColorFont()``.
-
-    :raises NotImplementedError: compressed SVG is not yet implemented
     """
 
     if not font.path.endswith('.ttf'):
@@ -324,11 +322,7 @@ def loadSvgColorFontMetadata(font: fontforge.font):
         ttf = ttFont.TTFont(font.path)
         print('Dumping into SVG files; this may take some minutes. Please be patient.')
         for doc in ttf['SVG '].docList:
-            if doc.compressed:
-                raise NotImplementedError('compressed SVG is not yet implemented')
-            else:
-                svg = doc.data
-            _separateSVG_thousands(ttf, svg, doc.startGlyphID, doc.endGlyphID, tmpdir)
+            _separateSVG_thousands(ttf, str(doc.data), doc.startGlyphID, doc.endGlyphID, tmpdir)
         _importSvg(font, tmpdir)
 
 

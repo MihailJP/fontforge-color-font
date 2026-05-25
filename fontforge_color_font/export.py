@@ -4,7 +4,6 @@ from pathlib import Path
 import re
 from subprocess import run
 from tempfile import TemporaryDirectory
-from typing import Literal
 
 import fontforge
 from fontTools.ttLib import ttFont
@@ -120,7 +119,7 @@ def _copyColrCpal(ttf: ttFont.TTFont, colrttf: ttFont.TTFont, glyphNameConversio
     )
 
 
-def _setSVGTable(ttf: ttFont.TTFont, tmpdir: str, glyphNameConversion: dict[str, str]):
+def _setSVGTable(ttf: ttFont.TTFont, tmpdir: str, glyphNameConversion: dict[str, str], compression: bool):
     assert 'SVG ' not in ttf
     ttf['SVG '] = ttFont.newTable('SVG ')
     ttf['SVG '].__dict__['docList'] = []
@@ -128,15 +127,15 @@ def _setSVGTable(ttf: ttFont.TTFont, tmpdir: str, glyphNameConversion: dict[str,
     for gid, glyph in (g for g in enumerate(ttf.getGlyphOrder()) if g[1] in glyphNameInverseConversion):
         with Path(tmpdir, glyphNameInverseConversion[glyph] + '.svg').open() as svg:
             ttf['SVG '].docList.append(
-                SVGDocument(svg.read(), gid, gid)
+                SVGDocument(svg.read(), gid, gid, compression)
             )
 
 
 def _checkColrParam(colr) -> bool:
-    if colr is None:
-        return False
     if not isinstance(colr, int):
-        raise TypeError('colr must be an int or None')
+        raise TypeError('colr must be an int')
+    elif colr == -1:
+        return False
     elif colr == 0:
         raise NotImplementedError('COLR v0 is not supported yet')
     elif colr == 1:
@@ -146,14 +145,12 @@ def _checkColrParam(colr) -> bool:
 
 
 def _checkSvgParam(svg) -> bool:
-    if svg is None:
-        return False
     if not isinstance(svg, int):
-        raise TypeError('svg must be an int or None')
-    elif svg == 0:
+        raise TypeError('svg must be an int')
+    elif svg == -1:
+        return False
+    elif 0 <= svg <= 1:
         return True
-    elif 1 <= svg <= 9:
-        raise NotImplementedError('compressed SVG is not supported yet')
     else:
         raise ValueError('invalid parameter of SVG')
 
@@ -162,8 +159,8 @@ def exportColorFont(
     font: fontforge.font,
     target: str | PathLike,
     *,
-    colr: Literal[0, 1] | None = None,
-    svg: Literal[0, 1, 2, 3, 4, 5, 6, 7, 8, 9] | None = None,
+    colr: int = -1,
+    svg: int = -1,
     **options,
 ):
     """Export color font
@@ -174,12 +171,12 @@ def exportColorFont(
 
     :param font: Fontforge font object
     :param target: TTF file to export
-    :param colr: version of ``COLR`` table, or ``None`` to exclude
-    :param svg: compression level of gzipped SVG; 0 for uncompressed, 1 for fast but least compressed, \
-        9 for most compressed but slow. ``None`` to exclude ``SVG `` table
+    :param colr: version of ``COLR`` table, or -1 to exclude
+    :param svg: compression level of gzipped SVG; 0 for uncompressed, 1 for compressed. \
+      -1 to exclude ``SVG `` table
     :param options: other options passed to ``fontforge.font.generate()``
     :raises ValueError: wrong extention is specified
-    :raises NotImplementedError: COLR v0 and compressed SVG are not yet supported
+    :raises NotImplementedError: COLR v0 is not yet supported
     """
 
     if not str(target).endswith('.ttf'):
@@ -212,7 +209,7 @@ def exportColorFont(
             _copyColrCpal(ttf, colrttf, glyphNameConversion)
 
         if _checkSvgParam(svg):
-            _setSVGTable(ttf, tmpdir, glyphNameConversion)
+            _setSVGTable(ttf, tmpdir, glyphNameConversion, svg == 1)
 
         ttf.save(str(target))
 
@@ -222,60 +219,35 @@ def testSvgMenu(u, font: fontforge.font):
 
 
 def exportColorFontMenu(u, font: fontforge.font):
-    def valOrNone(enabled: bool, x: int) -> int | None:
-        return x if enabled else None
-
     ans = fontforge.askMulti(
         'Export color font',
         [
             {
                 'type': 'savepath',
-                'question': 'Export as:',
+                'question': 'E_xport as:',
                 'tag': 'filename',
                 'filter': '*.ttf',
             },
             {
                 'type': 'choice',
-                'tag': 'tags',
-                'checks': True,
-                'answers': [
-                    {'name': "'COLR'", 'tag': 'COLR', 'default': True},
-                    {'name': "'SVG '", 'tag': 'SVG', 'default': True},
-                ],
-                'multiple': True,
-            },
-            {
-                'type': 'choice',
-                'question': "'COLR' version:",
+                'question': "'COLR' table:",
                 'tag': 'colr',
                 'checks': True,
                 'answers': [
-                    {'name': '0', 'tag': 0},
-                    {'name': '1', 'tag': 1, 'default': True},
+                    {'name': '_None', 'tag': -1},
+                    {'name': 'Version _0', 'tag': 0},
+                    {'name': 'Version _1', 'tag': 1, 'default': True},
                 ],
             },
             {
                 'type': 'choice',
-                'question': "SVG compression:",
-                'tag': '_svg',
-                'checks': True,
-                'answers': [],
-            },
-            {
-                'type': 'choice',
+                'question': "'SVG ' table:",
                 'tag': 'svg',
                 'checks': True,
                 'answers': [
-                    {'name': 'Plain', 'tag': 0, 'default': True},
-                    {'name': '', 'tag': 1},
-                    {'name': '', 'tag': 2},
-                    {'name': '', 'tag': 3},
-                    {'name': '', 'tag': 4},
-                    {'name': '', 'tag': 5},
-                    {'name': '', 'tag': 6},
-                    {'name': '', 'tag': 7},
-                    {'name': '', 'tag': 8},
-                    {'name': 'Max', 'tag': 9},
+                    {'name': 'Non_e', 'tag': -1},
+                    {'name': '_Uncompressed', 'tag': 0, 'default': True},
+                    {'name': '_Compressed', 'tag': 1},
                 ],
             },
         ]
@@ -285,6 +257,6 @@ def exportColorFontMenu(u, font: fontforge.font):
         exportColorFont(
             font,
             ans['filename'],
-            colr=valOrNone('COLR' in ans['tags'], ans['colr']),
-            svg=valOrNone('SVG' in ans['tags'], ans['svg'])
+            colr=ans['colr'],
+            svg=ans['svg'],
         )
