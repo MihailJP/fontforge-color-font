@@ -79,16 +79,14 @@ If the font has both `COLR` and `SVG ` tables, which one to read will be asked.
 
 Shows a dialog where you can set output file name and other options.
 
-- Tables to include, `COLR`, `SVG `, or both
-- 'COLR' version: 0 or 1
+- `COLR` table: None, Version 0, or 1
+  - Select “None” not to include the table.
   - Version 0 is not yet supported.
   - Version 1 supports gradients while version 0 does not.
-- SVG compression: Plain or other radio buttons (compression rate)
-  - Compressed SVG is not yet supported. Select ‘Plain’ for now.
-  - Select ‘Plain’ for uncompressed SVG documents.
-  - Aside ‘Plain,’ there is 9 radio buttons.
-    Select righter one for more compression,
-    lefter one for faster compression.
+- `SVG ` table: None, Uncompressed, or Compressed
+  - Select “None” not to include the table.
+- Some browsers support `SVG ` table but other browsers support `COLR` table.
+  Including both can support as many environments as possible.
 
 > [!NOTE]
 > Converting SVG glyphs into `COLR` table is so complicated that ‘nanoemoji’
@@ -121,8 +119,6 @@ For color glyph definitions, some SVG capability is prohibited.
 SVG data is stored in `glyph.persistent['SVG']`.
 If there is already non-`dict` `glyph.persistent`,
 it is **deleted without warning.**
-
-Compressed SVG is not yet supported.
 
 > [!IMPORTANT]
 > Due to Fontforge limitation, there is no way to show color glyphs
