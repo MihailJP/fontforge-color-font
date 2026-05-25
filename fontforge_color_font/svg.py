@@ -1,3 +1,4 @@
+import gzip
 from os import PathLike
 from pathlib import Path
 from typing import Callable
@@ -46,11 +47,21 @@ def exportSvg(glyph: fontforge.glyph, path: str | PathLike, f: Callable[[str], s
     """
     if svgIsRegistered(glyph):
         assert isinstance(glyph.persistent, dict)
-        with Path(path).open('w') as svg:
-            if f:
-                svg.write(f(glyph.persistent['SVG']))
-            else:
-                svg.write(glyph.persistent['SVG'])
+        assert isinstance(glyph.persistent['SVG'], str)
+        if str(path).endswith('.svg'):
+            with Path(path).open('w') as svg:
+                if f:
+                    svg.write(f(glyph.persistent['SVG']))
+                else:
+                    svg.write(glyph.persistent['SVG'])
+        elif str(path).endswith('.svgz') or str(path).endswith('.svg.gz'):
+            with Path(path).open('wb') as svg:
+                if f:
+                    svg.write(gzip.compress(bytes(f(glyph.persistent['SVG']), 'utf8')))
+                else:
+                    svg.write(gzip.compress(bytes(glyph.persistent['SVG'], 'utf8')))
+        else:
+            raise ValueError('invalid suffix', str(path))
     else:
         raise NoColorGlyphError("glyph '{}' does not have color font definition".format(glyph.glyphname))
 

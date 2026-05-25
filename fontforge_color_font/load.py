@@ -1,3 +1,4 @@
+import gzip
 from os import PathLike
 from pathlib import Path
 import re
@@ -115,15 +116,15 @@ def loadSvg(glyph: fontforge.glyph, svgPath: str | PathLike):
     :param glyph: a Fontforge glyph object
     :param path: path of SVG file to import
     :raises ValueError: wrong extension is specified
-    :raises NotImplementedError: compressed SVG is not yet implemented
     """
     initGlyphPersistentDict(glyph)
     assert isinstance(glyph.persistent, dict)
     if str(svgPath).endswith('.svg'):
-        with Path(svgPath).open() as svg:
-            svg = svg.read()
+        with Path(svgPath).open() as svgf:
+            svg = svgf.read()
     elif str(svgPath).endswith('.svgz') or str(svgPath).endswith('.svg.gz'):
-        raise NotImplementedError('compressed SVG is not yet implemented')
+        with Path(svgPath).open('rb') as svgz:
+            svg = str(gzip.decompress(svgz.read()))
     else:
         raise ValueError('the extension must be .svg, .svgz, or .svg.gz')
     glyph.persistent['SVG'] = svg[svg.find('<svg'):]
