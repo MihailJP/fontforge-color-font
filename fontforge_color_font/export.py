@@ -111,12 +111,18 @@ def _copyColrCpal(ttf: ttFont.TTFont, colrttf: ttFont.TTFont, glyphNameConversio
     ttf['COLR'] = colrttf['COLR']
     ttf['CPAL'] = colrttf['CPAL']
 
-    for b in ttf['COLR'].table.BaseGlyphList.BaseGlyphPaintRecord:
-        b.BaseGlyph = glyphNameConversion[b.BaseGlyph]
+    assert ttf['COLR'].version == 0 or ttf['COLR'].version == 1
+    if ttf['COLR'].version == 1:
+        for b in ttf['COLR'].table.BaseGlyphList.BaseGlyphPaintRecord:
+            b.BaseGlyph = glyphNameConversion[b.BaseGlyph]
 
-    ttf['COLR'].table.ClipList.clips = dict(
-        (glyphNameConversion[k], v) for k, v in colrttf['COLR'].table.ClipList.clips.items()
-    )
+        ttf['COLR'].table.ClipList.clips = dict(
+            (glyphNameConversion[k], v) for k, v in colrttf['COLR'].table.ClipList.clips.items()
+        )
+    else:
+        ttf['COLR'].ColorLayers = dict(
+            (glyphNameConversion[k], v) for k, v in colrttf['COLR'].ColorLayers.items()
+        )
 
 
 def _setSVGTable(ttf: ttFont.TTFont, tmpdir: str, glyphNameConversion: dict[str, str], compression: bool):
@@ -136,9 +142,7 @@ def _checkColrParam(colr) -> bool:
         raise TypeError('colr must be an int')
     elif colr == -1:
         return False
-    elif colr == 0:
-        raise NotImplementedError('COLR v0 is not supported yet')
-    elif colr == 1:
+    elif colr == 0 or colr == 1:
         return True
     else:
         raise ValueError('invalid version of COLR')
@@ -176,7 +180,6 @@ def exportColorFont(
       -1 to exclude ``SVG `` table
     :param options: other options passed to ``fontforge.font.generate()``
     :raises ValueError: wrong extention is specified
-    :raises NotImplementedError: COLR v0 is not yet supported
     """
 
     if not str(target).endswith('.ttf'):

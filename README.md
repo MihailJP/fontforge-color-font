@@ -81,7 +81,6 @@ Shows a dialog where you can set output file name and other options.
 
 - `COLR` table: None, Version 0, or 1
   - Select “None” not to include the table.
-  - Version 0 is not yet supported.
   - Version 1 supports gradients while version 0 does not.
 - `SVG ` table: None, Uncompressed, or Compressed
   - Select “None” not to include the table.
