@@ -1,12 +1,12 @@
 import fontforge
 
-from . import load, svg, export
+from . import hook, load, svg, export
 from fontforge_plugin_helper import addSystemHook
 
 
 def fontforge_plugin_init(**kw):
-    addSystemHook('loadFontHook', load.loadHook, enableIfScriptMode=False)
-    addSystemHook('newFontHook', load.newFontHook, enableIfScriptMode=False)
+    addSystemHook('loadFontHook', hook.loadHook, enableIfScriptMode=False)
+    addSystemHook('newFontHook', hook.newFontHook, enableIfScriptMode=False)
 
     fontforge.registerMenuItem(
         callback=load.loadColorFontMenu,
