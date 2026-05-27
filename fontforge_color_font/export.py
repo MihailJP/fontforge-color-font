@@ -159,6 +159,43 @@ def _checkSvgParam(svg) -> bool:
         raise ValueError('invalid parameter of SVG')
 
 
+def _exportColorFontMetadata(
+    tmpFont: str | PathLike,
+    target: str | PathLike,
+    font: fontforge.font,
+    tmpdir: str,
+    colr: int,
+    svg: int
+):
+    ttf = ttFont.TTFont(str(tmpFont))
+    ascent = ttf['hhea'].ascent
+    descent = ttf['hhea'].descent
+    assert descent <= 0
+
+    glyphNameConversion, svgFiles = _exportSVGGlyphs(font, ttf, tmpdir)
+
+    if _checkColrParam(colr):
+        run([
+            'nanoemoji',
+            '--color_format', 'glyf_colr_' + str(colr),
+            '--build_dir', str(Path(tmpdir, 'build')),
+            '--noclip_to_viewbox',
+            '--ascender', str(ascent),
+            '--descender', str(descent),
+            '--upem', str(ascent - descent),
+        ] + [str(p) for p in svgFiles], check=True)
+        # Path(tmpdir, 'build', 'Font.ttf').copy(Path('testxp.ttf'))  # debug
+
+        colrttf = ttFont.TTFont(Path(tmpdir, 'build', 'Font.ttf'))
+        _copyColrGlyphs(ttf, colrttf, glyphNameConversion)
+        _copyColrCpal(ttf, colrttf, glyphNameConversion)
+
+    if _checkSvgParam(svg):
+        _setSVGTable(ttf, tmpdir, glyphNameConversion, svg == 1)
+
+    ttf.save(str(target))
+
+
 def exportColorFont(
     font: fontforge.font,
     target: str | PathLike,
@@ -188,33 +225,7 @@ def exportColorFont(
     with TemporaryDirectory() as tmpdir:
         tmpTtfPath = Path(tmpdir, 'tmp.ttf')
         font.generate(str(tmpTtfPath), **options)
-        ttf = ttFont.TTFont(str(tmpTtfPath))
-        ascent = ttf['hhea'].ascent
-        descent = ttf['hhea'].descent
-        assert descent <= 0
-
-        glyphNameConversion, svgFiles = _exportSVGGlyphs(font, ttf, tmpdir)
-
-        if _checkColrParam(colr):
-            run([
-                'nanoemoji',
-                '--color_format', 'glyf_colr_' + str(colr),
-                '--build_dir', str(Path(tmpdir, 'build')),
-                '--noclip_to_viewbox',
-                '--ascender', str(ascent),
-                '--descender', str(descent),
-                '--upem', str(ascent - descent),
-            ] + [str(p) for p in svgFiles], check=True)
-            # Path(tmpdir, 'build', 'Font.ttf').copy(Path('testxp.ttf'))  # debug
-
-            colrttf = ttFont.TTFont(Path(tmpdir, 'build', 'Font.ttf'))
-            _copyColrGlyphs(ttf, colrttf, glyphNameConversion)
-            _copyColrCpal(ttf, colrttf, glyphNameConversion)
-
-        if _checkSvgParam(svg):
-            _setSVGTable(ttf, tmpdir, glyphNameConversion, svg == 1)
-
-        ttf.save(str(target))
+        _exportColorFontMetadata(tmpTtfPath, target, font, tmpdir, colr, svg)
 
 
 def exportColorFontMenu(u, font: fontforge.font):

@@ -150,7 +150,10 @@ Behaves similarly to “Import SVG as color font glyph” menu.
 This plugin installs new/open font hooks which does:
 
 - sets font generation hooks to output color glyphs if exist
-  - Not yet implemented
+  - Currently exports with COLRv1 and SVG.
+  - If `font.persistent` is a dict and there is `VF` key,
+    won't export `SVG ` table. This is because variable fonts do not support
+    `SVG ` table, but this plugin do not support variable color font.
 - loads color glyph data if available
   - If you load a color font from the ordinary ‘load’ menu, `COLR` table is
     preferred over `SVG `.

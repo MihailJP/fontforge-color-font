@@ -1,7 +1,10 @@
+from tempfile import TemporaryDirectory
+
 import fontforge
 
 from fontforge_plugin_helper import generationHookSetter
 from .load import hasColrTable, loadColrColorFontMetadata, hasSvgTable, loadSvgColorFontMetadata
+from .export import _exportColorFontMetadata
 
 
 def _generatePreHook(font: fontforge.font, target: str):
@@ -9,7 +12,13 @@ def _generatePreHook(font: fontforge.font, target: str):
 
 
 def _generatePostHook(font: fontforge.font, target: str):
-    pass
+    if any(g for g in font.glyphs() if isinstance(g.persistent, dict) and 'SVG' in g.persistent):
+        if str(target).endswith('.ttf'):
+            with TemporaryDirectory() as tmpdir:
+                if isinstance(font.persistent, dict) and 'VF' in font.persistent:
+                    _exportColorFontMetadata(target, target, font, tmpdir, 1, -1)
+                else:
+                    _exportColorFontMetadata(target, target, font, tmpdir, 1, 0)
 
 
 _addGenerateHook = generationHookSetter(_generatePreHook, _generatePostHook, enableIfScriptMode=False)
