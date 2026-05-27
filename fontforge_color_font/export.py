@@ -217,10 +217,6 @@ def exportColorFont(
         ttf.save(str(target))
 
 
-def testSvgMenu(u, font: fontforge.font):
-    exportColorFont(font, 'test.ttf')
-
-
 def exportColorFontMenu(u, font: fontforge.font):
     ans = fontforge.askMulti(
         'Export color font',
