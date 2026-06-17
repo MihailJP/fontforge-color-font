@@ -46,7 +46,9 @@ def _loadHook_ttf(font: fontforge.font):
 
 
 def loadHook(font: fontforge.font):
-    if font.path.endswith('.ttf'):
+    if not font.path:  # may occur in CID fonts
+        _addGenerateHook(font)
+    elif font.path.endswith('.ttf'):
         _loadHook_ttf(font)
         _addGenerateHook(font)
     elif font.path.endswith('.sfd'):
