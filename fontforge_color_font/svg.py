@@ -6,6 +6,7 @@ from typing import Callable
 import fontforge
 
 from .load import loadSvg, escapeGlyphName
+from .translation import tr
 
 
 class NoColorGlyphError(RuntimeError):
@@ -93,10 +94,10 @@ def exportSvgMenu(u, fontOrGlyph: fontforge.font | fontforge.glyph):
     glyphs = _selectedGlyphs(fontOrGlyph)
     if len(glyphs) == 1:
         glyph = glyphs[0]
-        if filename := fontforge.saveFilename('Export SVG document', glyph.glyphname + '.svg', "*.{svg,svgz,svg.gz}"):
+        if filename := fontforge.saveFilename(tr.get('Export SVG document'), glyph.glyphname + '.svg', "*.{svg,svgz,svg.gz}"):
             exportSvg(glyph, filename)
     elif len(glyphs) > 1:
-        if filename := fontforge.saveFilename('Export SVG documents', '*.svg', "*.{svg,svgz,svg.gz}"):
+        if filename := fontforge.saveFilename(tr.get('Export SVG documents'), '*.svg', "*.{svg,svgz,svg.gz}"):
             filepath, suffix = _svgPath(filename)
             for glyph in glyphs:
                 try:
@@ -109,10 +110,10 @@ def importSvgMenu(u, fontOrGlyph: fontforge.font | fontforge.glyph):
     glyphs = _selectedGlyphs(fontOrGlyph)
     if len(glyphs) == 1:
         glyph = glyphs[0]
-        if filename := fontforge.openFilename('Import SVG document', glyph.glyphname + '.svg', "*.{svg,svgz,svg.gz}"):
+        if filename := fontforge.openFilename(tr.get('Import SVG document'), glyph.glyphname + '.svg', "*.{svg,svgz,svg.gz}"):
             loadSvg(glyph, filename)
     elif len(glyphs) > 1:
-        if filename := fontforge.openFilename('Import SVG documents', '*.svg', "*.{svg,svgz,svg.gz}"):
+        if filename := fontforge.openFilename(tr.get('Import SVG documents'), '*.svg', "*.{svg,svgz,svg.gz}"):
             filepath, suffix = _svgPath(filename)
             for glyph in glyphs:
                 loadSvg(glyph, filepath.joinpath(Path(glyph.glyphname + suffix)))

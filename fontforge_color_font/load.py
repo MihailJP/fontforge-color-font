@@ -14,6 +14,8 @@ from fontTools.ttLib import ttFont, TTLibError
 from reportlab.graphics import renderPM
 from svglib.svglib import svg2rlg
 
+from .translation import tr
+
 
 SVG_Magic_Comment = '<!-- FONTFORGE_COLOR_FONT_SVG_READER -->'
 
@@ -48,7 +50,7 @@ def initGlyphPersistentDict(glyph: fontforge.glyph):
     if glyph.persistent is None:
         glyph.persistent = {}
     elif not isinstance(glyph.persistent, dict):
-        fontforge.logWarning('Non-dict persistent object in glyph {} has been dropped'.format(glyph.glyphname))
+        fontforge.logWarning(tr.get('Non-dict persistent object in glyph {} has been dropped').format(glyph.glyphname))
         glyph.persistent = {}
 
 
@@ -355,12 +357,12 @@ def _selectColrOrSvg(filename: str) -> bool | None:
         with ttFont.TTFont(filename) as ttf:
             if 'SVG ' in ttf and 'COLR' in ttf:
                 result = fontforge.ask(
-                    "'COLR' and 'SVG ' found",
-                    (
+                    tr.get("'COLR' and 'SVG ' found"),
+                    tr.get(
                         "The font has both 'COLR' and 'SVG '.\n"
                         "Which one to read?"
                     ),
-                    ('COLR', 'SVG', 'Cancel'),
+                    ('COLR', 'SVG', tr.get('Cancel')),
                     0,
                     2,
                 )
@@ -372,9 +374,9 @@ def _selectColrOrSvg(filename: str) -> bool | None:
 
 
 def loadColorFontMenu(u, font: fontforge.font):
-    if filename := fontforge.openFilename('Open color font', '', "*.ttf"):
+    if filename := fontforge.openFilename(tr.get('Open color font'), '', "*.ttf"):
         if (colrPreferred := _selectColrOrSvg(filename)) is not None:
             loadColorFont(filename, colrPreferred=colrPreferred)
         else:
-            fontforge.logWarning(filename + ' does not seem a TTF')
+            fontforge.logWarning(tr.get('{} does not seem a TTF').format(filename))
             fontforge.open(filename)

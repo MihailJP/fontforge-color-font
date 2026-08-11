@@ -9,6 +9,7 @@ import fontforge
 from fontTools.ttLib import ttFont
 from fontTools.ttLib.tables.S_V_G_ import SVGDocument
 
+from .translation import tr
 from .svg import svgIsRegistered, exportSvg
 
 
@@ -230,34 +231,34 @@ def exportColorFont(
 
 def exportColorFontMenu(u, font: fontforge.font):
     ans = fontforge.askMulti(
-        'Export color font',
+        tr.get('Export color font'),
         [
             {
                 'type': 'savepath',
-                'question': 'E_xport as:',
+                'question': tr.get('E_xport as:'),
                 'tag': 'filename',
                 'filter': '*.ttf',
             },
             {
                 'type': 'choice',
-                'question': "'COLR' table:",
+                'question': tr.get("'COLR' table:"),
                 'tag': 'colr',
                 'checks': True,
                 'answers': [
-                    {'name': '_None', 'tag': -1},
-                    {'name': 'Version _0', 'tag': 0},
-                    {'name': 'Version _1', 'tag': 1, 'default': True},
+                    {'name': tr.get('_None'), 'tag': -1},
+                    {'name': tr.get('Version _0'), 'tag': 0},
+                    {'name': tr.get('Version _1'), 'tag': 1, 'default': True},
                 ],
             },
             {
                 'type': 'choice',
-                'question': "'SVG ' table:",
+                'question': tr.get("'SVG ' table:"),
                 'tag': 'svg',
                 'checks': True,
                 'answers': [
-                    {'name': 'Non_e', 'tag': -1},
-                    {'name': '_Uncompressed', 'tag': 0, 'default': True},
-                    {'name': '_Compressed', 'tag': 1},
+                    {'name': tr.get('Non_e'), 'tag': -1},
+                    {'name': tr.get('_Uncompressed'), 'tag': 0, 'default': True},
+                    {'name': tr.get('_Compressed'), 'tag': 1},
                 ],
             },
         ]
