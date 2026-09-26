@@ -16,20 +16,20 @@ def fontforge_plugin_init(**kw):
         enable=None,
         context="Font",
         name=tr.get("Open color font..."),
-        submenu=tr.get('Color font'),
+        submenu=tr.get('_Color font'),
     )
     fontforge.registerMenuItem(
         callback=export.exportColorFontMenu,
         enable=None,
         context="Font",
         name=tr.get("Export color font..."),
-        submenu=tr.get('Color font'),
+        submenu=tr.get('_Color font'),
     )
 
     fontforge.registerMenuItem(
         divider=True,
         context="Font",
-        submenu=tr.get('Color font'),
+        submenu=tr.get('_Color font'),
     )
 
     fontforge.registerMenuItem(
@@ -37,19 +37,19 @@ def fontforge_plugin_init(**kw):
         enable=None,
         context=("Font", "Glyph"),
         name=tr.get("Import SVG as color font glyph..."),
-        submenu=tr.get('Color font'),
+        submenu=tr.get('_Color font'),
     )
     fontforge.registerMenuItem(
         callback=svg.exportSvgMenu,
         enable=svg.svgIsRegisteredMenu,
         context=("Font", "Glyph"),
         name=tr.get("Export SVG color font glyph..."),
-        submenu=tr.get('Color font'),
+        submenu=tr.get('_Color font'),
     )
     fontforge.registerMenuItem(
         callback=svg.deleteSvgMenu,
         enable=svg.svgIsRegisteredMenu,
         context=("Font", "Glyph"),
         name=tr.get("Delete SVG color font glyph"),
-        submenu=tr.get('Color font'),
+        submenu=tr.get('_Color font'),
     )

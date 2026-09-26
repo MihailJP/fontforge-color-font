@@ -8,7 +8,7 @@ translation_ja = {
     '_Cancel': 'キャンセル (_C)',
 
     # __main__.py
-    'Color font': 'カラーフォント',
+    '_Color font': 'カラーフォント (_C)',
     'Open color font...': 'カラーフォントを開く...',
     'Export color font...': 'カラーフォントを出力...',
     'Import SVG as color font glyph...': 'SVGをカラーフォントのグリフとしてインポート...',
