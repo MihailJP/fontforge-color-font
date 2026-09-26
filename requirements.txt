@@ -1,4 +1,6 @@
-blackrenderer
 fonttools
+scour
+blackrenderer
+nanoemoji
 svglib
-fontforge_plugin_helper >= 0.1.1
+fontforge_plugin_helper >= 0.4.0
