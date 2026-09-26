@@ -1,7 +1,6 @@
 import gzip
 from os import PathLike
 from pathlib import Path
-import re
 from subprocess import run
 from sys import stderr
 from tempfile import TemporaryDirectory
@@ -15,6 +14,7 @@ from reportlab.graphics import renderPM
 from svglib.svglib import svg2rlg
 
 from .translation import tr
+from fontforge_plugin_helper import escapeGlyphName
 
 
 SVG_Magic_Comment = '<!-- FONTFORGE_COLOR_FONT_SVG_READER -->'
@@ -52,19 +52,6 @@ def initGlyphPersistentDict(glyph: fontforge.glyph):
     elif not isinstance(glyph.persistent, dict):
         fontforge.logWarning(tr.get('Non-dict persistent object in glyph {} has been dropped').format(glyph.glyphname))
         glyph.persistent = {}
-
-
-def escapeGlyphName(glyphname: str) -> str:
-    patterns = [
-        (r'^uni([0-9A-F])([0-9A-F])([0-9A-F])([0-9A-F])', 'uni\ufdd0\\1\ufdd0\\2\ufdd0\\3\ufdd0\\4'),
-        (r'^u([0-9A-F]|10)([0-9A-F])([0-9A-F])([0-9A-F])([0-9A-F])', 'u\ufdd0\\1\ufdd0\\2\ufdd0\\3\ufdd0\\4\ufdd0\\5'),
-        (r'([A-Z_])', r'_\1'),
-        ('\ufdd0_?', ''),
-    ]
-    glyphfilename = glyphname
-    for pat, rpl in patterns:
-        glyphfilename = re.sub(pat, rpl, glyphfilename)
-    return glyphfilename
 
 
 def _glyphSvgToPng(glyph: fontforge.glyph, svgPath: str | PathLike | None, tmpdir: str):

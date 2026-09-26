@@ -5,8 +5,9 @@ from typing import Callable
 
 import fontforge
 
-from .load import loadSvg, escapeGlyphName
+from .load import loadSvg
 from .translation import tr
+from fontforge_plugin_helper import escapeGlyphName
 
 
 class NoColorGlyphError(RuntimeError):
