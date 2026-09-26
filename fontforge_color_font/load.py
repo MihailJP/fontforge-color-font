@@ -58,7 +58,9 @@ def _glyphSvgToPng(glyph: fontforge.glyph, svgPath: str | PathLike | None, tmpdi
     pngPath = Path(tmpdir, escapeGlyphName(glyph.glyphname) + '.png')
     if svgPath:
         drawing = svg2rlg(svgPath)
-        renderPM.drawToFile(drawing, pngPath, fmt='PNG')
+        if drawing is None:
+            raise RuntimeError("failed to render SVG document '{}'".format(str(svgPath)))
+        renderPM.drawToFile(drawing, str(pngPath), fmt='PNG')
         glyph.importOutlines(str(pngPath))
 
 
