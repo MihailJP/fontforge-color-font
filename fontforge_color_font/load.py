@@ -10,8 +10,6 @@ from blackrenderer.font import BlackRendererFont
 from blackrenderer.backends import getSurfaceClass
 import fontforge
 from fontTools.ttLib import ttFont, TTLibError
-from reportlab.graphics import renderPM
-from svglib.svglib import svg2rlg
 
 from .translation import tr
 from fontforge_plugin_helper import escapeGlyphName
@@ -52,35 +50,6 @@ def initGlyphPersistentDict(glyph: fontforge.glyph):
     elif not isinstance(glyph.persistent, dict):
         fontforge.logWarning(tr.get('Non-dict persistent object in glyph {} has been dropped').format(glyph.glyphname))
         glyph.persistent = {}
-
-
-def _glyphSvgToPng(glyph: fontforge.glyph, svgPath: str | PathLike | None, tmpdir: str):
-    pngPath = Path(tmpdir, escapeGlyphName(glyph.glyphname) + '.png')
-    if svgPath:
-        drawing = svg2rlg(svgPath)
-        if drawing is None:
-            raise RuntimeError("failed to render SVG document '{}'".format(str(svgPath)))
-        renderPM.drawToFile(drawing, str(pngPath), fmt='PNG')
-        glyph.importOutlines(str(pngPath))
-
-
-def glyphSvgToPng(glyph: fontforge.glyph, svgPath: str | PathLike | None = None, tmpdir: str | None = None):
-    def writeSvgIfNeeded(svgPath: str | PathLike | None) -> Path:
-        initGlyphPersistentDict(glyph)
-        assert isinstance(glyph.persistent, dict)
-        if svgPath is None:
-            svgfile = Path(str(tmpdir), escapeGlyphName(glyph.glyphname) + '.svg')
-            with svgfile.open('w') as f:
-                f.write(glyph.persistent['SVG'])
-            return svgfile
-        else:
-            return Path(svgPath)
-
-    if tmpdir:
-        _glyphSvgToPng(glyph, writeSvgIfNeeded(svgPath), tmpdir)
-    else:
-        with TemporaryDirectory() as td:
-            _glyphSvgToPng(glyph, writeSvgIfNeeded(svgPath), td)
 
 
 def loadSvg(glyph: fontforge.glyph, svgPath: str | PathLike):
